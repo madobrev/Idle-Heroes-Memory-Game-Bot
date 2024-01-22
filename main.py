@@ -45,6 +45,10 @@ def are_coordinates_close(coord1, coord2, threshold=10):
     return abs(coord1[0] - coord2[0]) <= threshold and abs(coord1[1] - coord2[1]) <= threshold
 
 
+icon_occurrences = {}
+coordinates_to_click = []
+
+
 def search_for_icon():
     for name, path in icon_bindings:
         try:
@@ -52,8 +56,17 @@ def search_for_icon():
             for item in locations:
                 if all(not are_coordinates_close(item, loc) for loc in found_locations[name]):
                     print(name, "found at", item)
+                    coordinate = [item[0], item[1]]
+                    if icon_occurrences.get(name) is not None:
+                        coordinate_tuple = [icon_occurrences[name], coordinate]
+                        coordinates_to_click.append(coordinate_tuple)
+                        to_be_removed = (name, path)
+                        icon_bindings.remove(to_be_removed)
+                        return
+                    icon_occurrences[name] = coordinate
                     found_locations[name].add(item)
-            time.sleep(0.5)
+                    return
+        #   time.sleep(0.5)
         except Exception as e:
             print(f"Error during icon search for {name}: {e}")
             continue
@@ -77,14 +90,19 @@ def start_game(event):
         for _ in range(2):
             for row in matrix:
                 for x, y in row:
+                    if click_count == 0:
+                        pyautogui.click(x, y)
+
                     pyautogui.click(x, y)
-                    time.sleep(0.5)
+                    time.sleep(2)
                     print("Clicked at ", x, y)
                     click_count += 1
+                    search_for_icon()
 
                     if click_count % 2 == 0:
-                        search_for_icon()
-                        pairs_found += 1
+                        if len(coordinates_to_click) > 0:
+                            pyautogui.click(coordinates_to_click[0][0], coordinates_to_click[0][1])
+                            pairs_found += 1
 
                     if keyboard.is_pressed('m'):
                         print("Terminating the loop.")
