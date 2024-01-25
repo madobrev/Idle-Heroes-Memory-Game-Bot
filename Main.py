@@ -6,6 +6,7 @@ import keyboard
 import numpy as np
 import pyautogui
 
+import Constants
 from CoordinateSaver import CoordinatesSaver
 from MatrixUtil import MatrixUtil
 
@@ -43,8 +44,8 @@ bottom_right_button = tk.Button(window, text="Click Bottom Right",
                                 command=lambda: coordinates_saver.start_listener("BottomRight"))
 
 
-def take_screenshot(center_x, center_y, side_length):
-    half_side_length = side_length / 2
+def take_screenshot(center_x, center_y):
+    half_side_length = Constants.CARD_SIZE / 2
 
     # Get bounds of the flipped card
     top_left_x = int(center_x - half_side_length)
@@ -142,7 +143,7 @@ def start_game(event):
             click_count += 1
             time.sleep(0.8)
             print("Clicked at ", x, y)
-            screenshot_after_flip = take_screenshot(x, y, 114)
+            screenshot_after_flip = take_screenshot(x, y)
             find_matching_icon(screenshot_after_flip, icon_bindings, x, y)
 
             if click_count % 2 == 0:
