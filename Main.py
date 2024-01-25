@@ -1,24 +1,22 @@
-import os
 import time
 import tkinter as tk
-import keyboard
-import pyautogui
+
 import cv2
+import keyboard
 import numpy as np
+import pyautogui
 
 from CoordinateSaver import CoordinatesSaver
 from MatrixUtil import MatrixUtil
 
-icon_dir = os.path.abspath('icons')
-
-ant = cv2.imread(os.path.join(icon_dir, 'Ant.png'), cv2.IMREAD_GRAYSCALE)
-dead = cv2.imread(os.path.join(icon_dir, 'Dead.png'), cv2.IMREAD_GRAYSCALE)
-fire = cv2.imread(os.path.join(icon_dir, 'Fire.png'), cv2.IMREAD_GRAYSCALE)
-light = cv2.imread(os.path.join(icon_dir, 'Light.png'), cv2.IMREAD_GRAYSCALE)
-ogre = cv2.imread(os.path.join(icon_dir, 'Ogre.png'), cv2.IMREAD_GRAYSCALE)
-shaman = cv2.imread(os.path.join(icon_dir, 'Shaman.png'), cv2.IMREAD_GRAYSCALE)
-skull = cv2.imread(os.path.join(icon_dir, 'Skull.png'), cv2.IMREAD_GRAYSCALE)
-smile = cv2.imread(os.path.join(icon_dir, 'Smile.png'), cv2.IMREAD_GRAYSCALE)
+ant = cv2.imread(r'icons\Ant.png', cv2.IMREAD_GRAYSCALE)
+dead = cv2.imread(r'icons\Dead.png', cv2.IMREAD_GRAYSCALE)
+fire = cv2.imread(r'icons\Fire.png', cv2.IMREAD_GRAYSCALE)
+light = cv2.imread(r'icons\Light.png', cv2.IMREAD_GRAYSCALE)
+ogre = cv2.imread(r'icons\Ogre.png', cv2.IMREAD_GRAYSCALE)
+shaman = cv2.imread(r'icons\Shaman.png', cv2.IMREAD_GRAYSCALE)
+skull = cv2.imread(r'icons\Skull.png', cv2.IMREAD_GRAYSCALE)
+smile = cv2.imread(r'icons\Smile.png', cv2.IMREAD_GRAYSCALE)
 
 icon_bindings = [
     ('ant', ant),
@@ -30,6 +28,9 @@ icon_bindings = [
     ('skull', skull),
     ('smile', smile)
 ]
+
+icon_locations = []
+found_pairs = []
 
 window = tk.Tk()
 window.title("Coordinate Selection")
@@ -57,7 +58,7 @@ def take_screenshot(center_x, center_y, side_length):
     return screenshot
 
 
-def find_matching_icon(flipped_card_image, icon_bindings):
+def find_matching_icon(flipped_card_image, icon_bindings, x, y):
     flipped_card_np = np.array(flipped_card_image)
     flipped_card_gray = cv2.cvtColor(flipped_card_np, cv2.COLOR_BGR2GRAY)
 
@@ -82,17 +83,30 @@ def find_matching_icon(flipped_card_image, icon_bindings):
             best_match_name = icon_name
 
     if best_match_name is not None:
+        coordinates = [x, y]
+        update_icon_locations(icon_locations, best_match_name, coordinates)
         print(f"Best match: {best_match_name} with confidence {max_confidence}")
     else:
         print("No matches found.")
 
 
-id_count = 0
+def update_icon_locations(icon_locations, best_match_name, coordinates):
+    for icon_info in icon_locations:
+        existing_name = icon_info[0]
+
+        if existing_name == best_match_name:
+            if coordinates not in found_pairs:
+                found_pairs.append(coordinates)
+                found_pairs.append(icon_info[1])
+                print("MATCH FOUND")
+            break
+    else:
+        icon_locations.append([best_match_name, coordinates])
 
 
 def start_game(event):
-    pairs_found = 0
-    TOTAL_PAIRS = 8
+    icon_locations.clear()
+    found_pairs.clear()
     click_count = 0
 
     print("TL", coordinates_saver.top_left_coord)
@@ -104,28 +118,30 @@ def start_game(event):
     memory_game = MatrixUtil(top_left_coord, bottom_right_coord)
     matrix = memory_game.create_matrix()
 
-    while pairs_found < TOTAL_PAIRS:
-        for row in matrix:
-            for x, y in row:
-                if click_count == 0:
-                    pyautogui.click(x, y)
+    for row in matrix:
+        for x, y in row:
+            if click_count == 0:
                 pyautogui.click(x, y)
-                click_count += 1
-                time.sleep(0.8)
-                print("Clicked at ", x, y)
-                screenshot_after_flip = take_screenshot(x, y, 114)
-                find_matching_icon(screenshot_after_flip, icon_bindings)
+            pyautogui.click(x, y)
+            click_count += 1
+            time.sleep(0.8)
+            print("Clicked at ", x, y)
+            screenshot_after_flip = take_screenshot(x, y, 114)
+            find_matching_icon(screenshot_after_flip, icon_bindings, x, y)
 
-                global id_count
-                # screenshot_after_flip.save(f'difference_{id_count}.png')
-                id_count += 1
+            if click_count % 2 == 0:
+                while len(found_pairs) > 0:
+                    time.sleep(1)
+                    pyautogui.click(found_pairs[0])
+                    time.sleep(1.5)
+                    pyautogui.click(found_pairs[1])
+                    time.sleep(2)
+                    found_pairs.pop(0)
+                    found_pairs.pop(0)
 
-                if click_count % 2 == 0:
-                    time.sleep(2.5)
-
-            if keyboard.is_pressed('m'):
-                print("Terminating the loop.")
-                exit()
+        if keyboard.is_pressed('m'):
+            print("Terminating the loop.")
+            exit()
 
 
 start_button = tk.Button(window, text="Start")
