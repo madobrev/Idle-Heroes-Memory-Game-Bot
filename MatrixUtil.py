@@ -9,15 +9,14 @@ class MatrixUtil:
         start_x = self.top_left[0]
         start_y = self.top_left[1]
 
-        row_height = 114
-        col_width = 114
+        square_side_size = 114
 
+        # Create the matrix with coordinates of all 16 (4x4) squares.
         for row in range(4):
             row_values = []
             for col in range(4):
-                # Calculate the center of each square
-                x = start_x + col * (col_width + self.gap) + col_width / 2
-                y = start_y + row * (row_height + self.gap) + row_height / 2
+                x = start_x + col * (square_side_size + self.gap) + square_side_size / 2
+                y = start_y + row * (square_side_size + self.gap) + square_side_size / 2
                 row_values.append((x, y))
             matrix.append(row_values)
 
