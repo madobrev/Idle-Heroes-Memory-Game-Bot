@@ -6,7 +6,6 @@ import pyautogui
 import cv2
 import numpy as np
 
-
 from CoordinateSaver import CoordinatesSaver
 from MatrixUtil import MatrixUtil
 
@@ -42,12 +41,6 @@ top_left_button = tk.Button(window, text="Click Top Left", command=lambda: coord
 bottom_right_button = tk.Button(window, text="Click Bottom Right",
                                 command=lambda: coordinates_saver.start_listener("BottomRight"))
 
-found_locations = {name: set() for name, _ in icon_bindings}
-
-
-def are_coordinates_close(coord1, coord2, threshold=10):
-    return abs(coord1[0] - coord2[0]) <= threshold and abs(coord1[1] - coord2[1]) <= threshold
-
 
 def take_screenshot(center_x, center_y, side_length):
     half_side_length = side_length / 2
@@ -64,8 +57,6 @@ def take_screenshot(center_x, center_y, side_length):
     return screenshot
 
 
-
-
 def find_matching_icon(flipped_card_image, icon_bindings):
     flipped_card_np = np.array(flipped_card_image)
     flipped_card_gray = cv2.cvtColor(flipped_card_np, cv2.COLOR_BGR2GRAY)
@@ -75,7 +66,16 @@ def find_matching_icon(flipped_card_image, icon_bindings):
 
     for icon_name, icon_path in icon_bindings:
         img = icon_path
-        confidence = cv2.matchTemplate(flipped_card_gray, img, cv2.TM_CCOEFF_NORMED).max()
+        if img.shape[-1] == 3:
+            img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        else:
+            img_gray = img
+
+        flipped_card_gray_norm = cv2.normalize(flipped_card_gray, None, 0, 255, cv2.NORM_MINMAX)
+        img_gray_norm = cv2.normalize(img_gray, None, 0, 255, cv2.NORM_MINMAX)
+
+        result = cv2.matchTemplate(flipped_card_gray_norm, img_gray_norm, cv2.TM_CCORR_NORMED)
+        confidence = np.max(result)
 
         if confidence > max_confidence:
             max_confidence = confidence
@@ -86,7 +86,9 @@ def find_matching_icon(flipped_card_image, icon_bindings):
     else:
         print("No matches found.")
 
+
 id_count = 0
+
 
 def start_game(event):
     pairs_found = 0
@@ -108,23 +110,22 @@ def start_game(event):
                 if click_count == 0:
                     pyautogui.click(x, y)
                 pyautogui.click(x, y)
+                click_count += 1
                 time.sleep(0.8)
                 print("Clicked at ", x, y)
                 screenshot_after_flip = take_screenshot(x, y, 114)
-                find_matching_icon(screenshot_after_flip,icon_bindings)
+                find_matching_icon(screenshot_after_flip, icon_bindings)
 
                 global id_count
-                screenshot_after_flip.save(f'difference_{id_count}.png')
+                # screenshot_after_flip.save(f'difference_{id_count}.png')
                 id_count += 1
 
-
-            click_count += 1
+                if click_count % 2 == 0:
+                    time.sleep(2.5)
 
             if keyboard.is_pressed('m'):
                 print("Terminating the loop.")
                 exit()
-
-    print("Locations: ", found_locations)
 
 
 start_button = tk.Button(window, text="Start")
